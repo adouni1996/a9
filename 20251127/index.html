@@ -7,12 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-gray-100 min-h-screen p-3">
   <div id="app" class="max-w-4xl mx-auto  rounded-lg">
     <h1 class="text-2xl font-bold mb-2 p-1">特塞计算器</h1>
 
     <!-- 顶部信息 -->
-    <div class="mb-6 p-4 rounded border bg-gray-50 sticky top-0 z-10">
+    <div class="mb-3 p-4 rounded border bg-gray-50 sticky top-0 z-10">
       <div class="flex flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <div class="text-sm text-gray-600">当前点数</div>
@@ -34,7 +34,7 @@
     </div>
 
     <!-- 车辆列表 -->
-    <div class="space-y-4">
+    <div class="space-y-3">
       <div v-for="car in userCars" :key="car.name" class="p-4 border rounded-lg bg-white">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
