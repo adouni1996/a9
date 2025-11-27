@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>特塞计算器</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div id="app" class="max-w-4xl mx-auto  rounded-lg">
+    <h1 class="text-2xl font-bold mb-2 p-1">特塞计算器</h1>
+
+    <!-- 顶部信息 -->
+    <div class="mb-6 p-4 rounded border bg-gray-50 sticky top-0 z-10">
+      <div class="flex flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <div class="text-sm text-gray-600">当前点数</div>
+          <div class="text-3xl font-extrabold text-blue-600">{{ totalPoints }}</div>
+        </div>
+
+        <div>
+          <div class="text-sm text-gray-600">提车条件</div>
+          <div class="text-3xl font-extrabold text-green-600">{{ unlockPoints }}</div>
+        </div>
+
+        <div class="self-center">
+          <div :class="totalPoints >= unlockPoints ? 'text-green-600' : 'text-red-500'" class="font-semibold">
+            {{ totalPoints >= unlockPoints ? '已达到提车要求 ✅' : '点数不足，继续努力 ✨' }}
+          </div>
+          <div class="text-xs text-gray-500 mt-1">（修改任意车辆星级实时计算）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 车辆列表 -->
+    <div class="space-y-4">
+      <div v-for="car in userCars" :key="car.name" class="p-4 border rounded-lg bg-white">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div class="mb-2">
+              <img :src="getCarImage(car.name)" :alt="car.name" class="h-32 w-full object-contain rounded">
+            </div>
+            <div class="text-lg font-semibold">{{ car.name }}</div>
+            <div class="text-sm text-gray-500">
+              可选星级: 1 ~ <span class="font-medium">{{ car.maxStar }}</span>
+              &nbsp;｜&nbsp;当前选中：<span class="font-medium">{{ car.star }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button class="px-3 py-1 rounded border" @click="decreaseStar(car)" :disabled="car.star<=1">-</button>
+            <input type="number" min="1"
+                   :max="car.maxStar"
+                   v-model.number="car.star"
+                   class="w-20 text-center border rounded px-2 py-1" />
+            <button class="px-3 py-1 rounded border" @click="increaseStar(car)" :disabled="car.star>=car.maxStar">+</button>
+
+            <div class="ml-4 text-sm text-gray-700">
+              <div>可得点数： <span class="font-bold text-blue-600">{{ getCarPoints(car) }}</span></div>
+              <div>已得点数： <span class="font-bold text-green-600">{{ getCarEarnedPoints(car) }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+const { createApp, reactive, computed } = Vue;
+
+const imageInfo = [
+  { car:"BUGATTI CHIRON PUR SPORT",img: './1.jpg'},
+  { car:"TOYOTA GR SUPRA 2023",img: './2.png'},
+  { car:"TOYOTA GR SPORT CONCEPT",img: './3.png'},
+  { car:"CZINGER 21C",img: './4.jpg'},
+  { car:"VANDA ELECTRICS DENDROBIUM",img: './5.jpg'},
+  { car:"LAMBORGHINI TERZO MILLENNIO",img: './6.jpg'},
+  { car:"McLAREN 650S GT3",img: './7.jpg'},
+  { car:"SALEEN S7 TWIN TURBO",img: './8.jpg'},
+]
+
+
+const levels = [
+  /* （此处直接复用你给的 levels 数据，原样粘贴） */
+  {
+    car: 'BUGATTI CHIRON PUR SPORT',
+    points: 0,
+    testDrive: true,
+    testDriveStar: 5,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 4 },
+      { star: 1, points: 3 },
+      { star: 1, points: 3 },
+      { star: 1, points: 1 },
+    ],
+  },
+  {
+    car: 'TOYOTA GR SUPRA 2023',
+    points: 10,
+    testDrive: false,
+    testDriveStar: null,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 5 },
+      { star: 1, points: 3 },
+      { star: 1, points: 1 },
+    ],
+  },
+  {
+    car: 'TOYOTA GR SPORT CONCEPT',
+    points: 20,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 4 },
+      { star: 1, points: 3 },
+      { star: 1, points: 1 },
+    ],
+  },
+  {
+    car: 'CZINGER 21C',
+    points: 30,
+    testDrive: false,
+    testDriveStar: null,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 5 },
+      { star: 1, points: 3 },
+      { star: 1, points: 1 },
+    ],
+  },
+  {
+    car: 'VANDA ELECTRICS DENDROBIUM',
+    points: 40,
+    testDrive: false,
+    testDriveStar: null,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 4 },
+      { star: 1, points: 3 },
+      { star: 1, points: 1 },
+    ],
+  },
+  {
+    car: 'BUGATTI CHIRON PUR SPORT',
+    points: 50,
+    testDrive: true,
+    testDriveStar: 5,
+    starPoints: [
+      { star: 1, points: 3 },
+      { star: 1, points: 5 },
+      { star: 1, points: 5 },
+      { star: 1, points: 3 },
+      { star: 1, points: 2 },
+    ],
+  },
+  {
+    car: 'LAMBORGHINI TERZO MILLENNIO',
+    points: 70,
+    starPoints: [
+      { star: 1, points: 4 },
+      { star: 1, points: 5 },
+      { star: 1, points: 2 },
+      { star: 1, points: 2 },
+      { star: 1, points: 4 },
+    ],
+  },
+  {
+    car: 'McLAREN 650S GT3',
+    points: 90,
+    starPoints: [
+      { star: 1, points: 5 },
+      { star: 1, points: 5 },
+      { star: 1, points: 2 },
+      { star: 1, points: 2 },
+      { star: 1, points: 4 },
+    ],
+  },
+  {
+    car: 'SALEEN S7 TWIN TURBO',
+    points: 110,
+    starPoints: [
+      { star: 1, points: 4 },
+      { star: 1, points: 5 },
+      { star: 1, points: 4 },
+      { star: 1, points: 2 },
+      { star: 1, points: 4 },
+    ],
+  },
+  {
+    car: 'BUGATTI CHIRON PUR SPORT',
+    points: 130,
+    testDrive: true,
+    testDriveStar: 5,
+    starPoints: [
+      { star: 1, points: 4 },
+      { star: 1, points: 5 },
+      { star: 1, points: 4 },
+      { star: 1, points: 5 },
+      { star: 1, points: 4 },
+    ],
+  },
+  {
+    car: 'TOYOTA GR SUPRA 2023',
+    points: 150,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 4 }, { star: 2, points: 2 },
+      { star: 2, points: 2 }, { star: 3, points: 3 }, { star: 3, points: 1 },
+      { star: 3, points: 3 }, { star: 4, points: 5 }, { star: 4, points: 1 },
+    ],
+  },
+  {
+    car: 'TOYOTA GR SPORT CONCEPT',
+    points: 170,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 4 }, { star: 2, points: 2 },
+      { star: 3, points: 3 }, { star: 3, points: 3 }, { star: 4, points: 1 },
+      { star: 4, points: 3 }, { star: 5, points: 5 }, { star: 5, points: 1 },
+    ],
+  },
+  {
+    car: 'CZINGER 21C',
+    points: 190,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 4 }, { star: 3, points: 2 },
+      { star: 3, points: 3 }, { star: 4, points: 3 }, { star: 4, points: 1 },
+      { star: 5, points: 3 }, { star: 5, points: 5 }, { star: 6, points: 1 },
+    ],
+  },
+  {
+    car: 'VANDA ELECTRICS DENDROBIUM',
+    points: 210,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 4 }, { star: 3, points: 2 },
+      { star: 3, points: 3 }, { star: 4, points: 3 }, { star: 4, points: 1 },
+      { star: 5, points: 3 }, { star: 5, points: 5 }, { star: 6, points: 1 },
+    ],
+  },
+  {
+    car: 'LAMBORGHINI TERZO MILLENNIO',
+    points: 225,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 5 }, { star: 3, points: 3 },
+      { star: 3, points: 4 }, { star: 4, points: 3 }, { star: 4, points: 2 },
+      { star: 5, points: 5 }, { star: 5, points: 2 }, { star: 6, points: 1 },
+    ],
+  },
+  {
+    car: 'McLAREN 650S GT3',
+    points: 240,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 4 }, { star: 3, points: 4 },
+      { star: 3, points: 4 }, { star: 4, points: 3 }, { star: 4, points: 1 },
+      { star: 5, points: 2 }, { star: 5, points: 5 }, { star: 6, points: 2 }, { star: 6, points: 1 },
+    ],
+  },
+  {
+    car: 'SALEEN S7 TWIN TURBO',
+    points: 255,
+    starPoints: [
+      { star: 1, points: 4 }, { star: 2, points: 6 }, { star: 3, points: 3 },
+      { star: 3, points: 2 }, { star: 4, points: 4 }, { star: 4, points: 1 },
+      { star: 5, points: 4 }, { star: 5, points: 5 }, { star: 6, points: 2 }, { star: 6, points: 1 },
+    ],
+  },
+  {
+    car: 'BUGATTI CHIRON PUR SPORT',
+    points: 270,
+    starPoints: [
+      { star: 3, points: 5 }, { star: 3, points: 4 }, { star: 3, points: 1 },
+      { star: 4, points: 4 }, { star: 4, points: 4 }, { star: 4, points: 1 },
+      { star: 5, points: 4 }, { star: 5, points: 3 }, { star: 6, points: 1 }, { star: 6, points: 1 },
+    ],
+  },
+];
+
+
+createApp({
+  setup() {
+    const unlockPoints = 320;
+
+    // 1) 去重车辆名
+    const carNames = Array.from(new Set(levels.map(l => l.car)));
+
+    // 2) 构建每辆车星级映射
+    const carStarMap = {};
+    for (const l of levels) {
+      const name = l.car;
+      if (!carStarMap[name]) carStarMap[name] = { maxStar: 1 };
+      if (Array.isArray(l.starPoints)) {
+        for (const sp of l.starPoints) {
+          const s = Number(sp.star) || 1;
+          if (s > carStarMap[name].maxStar) carStarMap[name].maxStar = s;
+        }
+      }
+      if (l.testDriveStar && l.testDriveStar > carStarMap[name].maxStar) {
+        carStarMap[name].maxStar = Number(l.testDriveStar);
+      }
+    }
+
+    // 3) 用户车辆对象
+    const userCars = reactive(carNames.map(name => ({
+      name,
+      star: 1,
+      maxStar: carStarMap[name].maxStar || 1
+    })));
+
+    // 计算单车点数（当前星级及以上点数累积）
+    function getLevelPointsForCarAtStar(level, carObj) {
+      if (!Array.isArray(level.starPoints)) return 0;
+      const currentStar = Number(carObj.star) || 1;
+      let sum = 0;
+      for (const sp of level.starPoints) {
+        if (currentStar >= Number(sp.star)) sum += Number(sp.points) || 0;
+      }
+      return sum;
+    }
+
+    // 计算车辆可得点数（所有关卡中基于当前星级可获得的点数，无论是否解锁）
+    function getCarPoints(carObj) {
+      let sum = 0;
+      for (const level of levels.filter(l => l.car === carObj.name)) {
+        sum += getLevelPointsForCarAtStar(level, carObj);
+      }
+      return sum;
+    }
+
+    // 总点数（关卡解锁规则）
+    const totalPoints = computed(() => {
+      // userTotal应该是用户当前实际获得的总点数
+      // 但我们无法直接计算它，因为它依赖于totalPoints本身
+      // 所以我们采用另一种方法：逐步累加直到稳定
+      
+      // 初始化为0
+      let sum = 0;
+      let prevSum = -1;
+      
+      // 循环直到结果稳定
+      while (sum !== prevSum) {
+        prevSum = sum;
+        sum = 0;
+        
+        // 根据当前sum值，计算已解锁关卡点数
+        for (const level of levels) {
+          if (prevSum >= level.points) {
+            const car = userCars.find(c => c.name === level.car);
+            if (car) sum += getLevelPointsForCarAtStar(level, car);
+          }
+        }
+      }
+      
+      return sum;
+    });
+
+    // 计算车辆已得点数（在已解锁关卡中基于当前星级可获得的点数）
+    function getCarEarnedPoints(carObj) {
+      // userTotal应该是用户当前实际获得的总点数
+      const userTotal = totalPoints.value;
+
+      // 计算该车辆在已解锁关卡中基于当前星级可获得的点数
+      let sum = 0;
+      for (const level of levels) {
+        // 只有用户的点数大于等于关卡要求，且关卡车辆与当前车辆匹配时，才能获取该关卡内的点数
+        if (userTotal >= level.points && level.car === carObj.name) {
+          sum += getLevelPointsForCarAtStar(level, carObj);
+        }
+      }
+      return sum;
+    }
+
+    // 根据车辆名称获取图片路径
+    function getCarImage(carName) {
+      const car = imageInfo.find(item => item.car === carName);
+      return car ? car.img : '';
+    }
+
+    function increaseStar(car) {
+      if (car.star < car.maxStar) car.star++;
+    }
+    function decreaseStar(car) {
+      if (car.star > 1) car.star--;
+    }
+
+    return {
+      unlockPoints,
+      userCars,
+      totalPoints,
+      increaseStar,
+      decreaseStar,
+      getCarPoints,
+      getCarEarnedPoints,
+      getCarImage,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
